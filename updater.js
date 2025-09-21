@@ -2,6 +2,46 @@
 import { getSettings } from './state.js';
 import { defaultPromptTemplate } from './promptTemplate.js';
 
+// --- Few-shot (strict guidance, not part of output) ---
+function fewShot(locLabel) {
+    return `
+EXAMPLES (for guidance only; DO NOT copy into output):
+
+Example A:
+Headwear: none
+Top (outer): blue hoodie
+Top (under): white t-shirt
+Bottom (outer): jeans
+Bottom (under): briefs
+Footwear: sneakers
+${locLabel}: dorm room
+
+Example B:
+Headwear: black cap
+Top (outer): leather jacket
+Top (under): tank top
+Bottom (outer): cargo pants
+Bottom (under): boxers
+Footwear: boots
+${locLabel}: city street
+
+Example C:
+Headwear: baseball cap
+Top (outer): trench coat
+Top (under): dress shirt
+Bottom (outer): slacks
+Bottom (under): boxers
+Footwear: dress shoes
+${locLabel}: office
+
+IMPORTANT:
+- You must output exactly these 7 labels, spelled and capitalized as above.
+- Do NOT invent new labels (e.g. "Legs", "Panties", "Shoes").
+- Do NOT add commentary, explanations, or extra lines.
+- Do NOT insert blank lines between outputs.
+`.trim();
+}
+
 /**
  * Ask the current LLM (quietly) to PATCH outfit/location for "char" or "user".
  * Returns an object with normalized keys used by the panels:
@@ -22,7 +62,6 @@ export async function fetchOutfitFromChat(ownerKey) {
         (window?.characters && window.characters[activeCharId]) ||
         null;
 
-    // Prefer ctx.name2, but if it is "SillyTavern System" or empty, fall back to the active character card name
     const charName = (name2 && name2 !== 'SillyTavern System')
         ? name2
         : (charObj?.name || 'Character');
@@ -48,7 +87,6 @@ export async function fetchOutfitFromChat(ownerKey) {
     // ---- Recent chat excerpt (last 12), filtered + with forced speakers ----
     const excerpt = (chat || [])
         .filter(m =>
-            // drop system-ish lines
             !m?.is_system &&
             (m?.mes ?? '').trim() !== '' &&
             String(m?.name || '').trim() !== 'SillyTavern System'
@@ -73,7 +111,7 @@ export async function fetchOutfitFromChat(ownerKey) {
         `${locLabel}: ...`,
     ].join('\n');
 
-    const prompt = template
+    const prompt = (fewShot(locLabel) + '\n\n' + template)
         .replace(/{{who}}/g, who)
         .replace(/{{lineCount}}/g, '7')
         .replace(/{{fieldList}}/g, fieldList)
@@ -95,10 +133,8 @@ export async function fetchOutfitFromChat(ownerKey) {
     }
     if (!raw) return null;
 
-    // Drop anything after "Self-check"
     raw = raw.split(/self-check/i)[0];
 
-    // ---- Parse "Field: value" pairs (one per line; be lenient) ----
     const out = {};
     raw.split('\n').forEach(line => {
         const [k, ...rest] = line.split(':');
@@ -110,7 +146,6 @@ export async function fetchOutfitFromChat(ownerKey) {
         const key = normalizeKey(k.trim(), ownerIsChar);
         if (!key) return;
 
-        // Socks are not valid footwear
         if (key === 'footwear' && /sock/i.test(v)) v = 'unknown';
 
         out[key] = v;
@@ -120,7 +155,6 @@ export async function fetchOutfitFromChat(ownerKey) {
 }
 
 // -------------- helpers --------------
-
 function sanitizeValue(v) {
     const t = v.replace(/\.$/, '').trim();
     if (!t || /^(?:none|n\/a|null|unknown)$/i.test(t)) return 'unknown';

@@ -70,7 +70,7 @@ function makeInteractive(panelSelector, ownerKey, settings) {
         },
     });
 
-    // Save outfit/location (apply suggestions if present)
+    // Save outfit/location
     panel.find('.save-btn').on('click', () => {
         panel.find('input').each(function () {
             const field = $(this).data('field');
@@ -89,9 +89,12 @@ function makeInteractive(panelSelector, ownerKey, settings) {
         const { userName, charName } = resolveNames();
         toastr.success(`${ownerKey === 'char' ? charName : userName} outfit saved`);
 
-        // Re-render so UI updates immediately
-        renderPanels();
+        // ✅ Pull fresh state and re-render immediately
+        const s = getSettings();
+        ensureOutfitKeys(s);
+        renderPanels(true);
     });
+
 
     // Update from Chat -> show suggestions under fields (green)
     panel.find('.update-btn').on('click', async () => {
@@ -125,7 +128,7 @@ function makeInteractive(panelSelector, ownerKey, settings) {
 // After render, fix titles once names are definitely available
 function syncTitlesOnce() {
     let tries = 0;
-    const maxTries = 20;
+    const maxTries = 120; // extended retry window
     const timer = setInterval(() => {
         const { userName, charName } = resolveNames();
         const ch = $('#char_outfit_panel .panel-title');
@@ -164,12 +167,41 @@ function setupCharPopupSync() {
     }, 300);
 }
 
-export function renderPanels() {
+function bindChatEventsOnce() {
+    const ctx = SillyTavern.getContext();
+    const ev = ctx?.eventSource;
+    if (ev && typeof ev.on === 'function') {
+        ev.on('chatLoaded', () => {
+            console.log('[panels] chatLoaded event fired, rendering panels');
+            renderPanels(true);
+        });
+    }
+}
+
+export function renderPanels(fromEvent = false) {
     const s = getSettings();
     ensureOutfitKeys(s);
 
     const { userName, charName } = resolveNames();
 
+    if (!fromEvent) {
+        // First call: only render the user panel, wait for chatLoaded for char panel
+        const userHtml = buildPanel(
+            'user_outfit_panel',
+            `${userName} Outfit`,
+            'user',
+            s,
+            'right'
+        );
+        $('#user_outfit_panel').remove();
+        $(document.body).append(userHtml);
+        makeInteractive('#user_outfit_panel', 'user', s);
+        setupCharPopupSync();
+        bindChatEventsOnce();
+        return;
+    }
+
+    // Normal/full render (after chatLoaded)
     const charHtml = buildPanel(
         'char_outfit_panel',
         `${charName} Outfit`,
