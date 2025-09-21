@@ -1,0 +1,32 @@
+<div class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header">
+        <b>Outfit & Location Tracker</b>
+        <div class="inline-drawer-icon fa-solid interactable up fa-circle-chevron-up" tabindex="0"></div>
+    </div>
+    <div class="inline-drawer-content">
+
+        <div class="marginBot10">
+            <label class="checkbox_label" for="outfit_auto_update">
+                <input id="outfit_auto_update" type="checkbox">
+                <span>Auto-update from chat</span>
+            </label>
+        </div>
+
+        <div class="marginBot10">
+            <label for="outfit_custom_fields">Custom fields (comma separated):</label>
+            <input id="outfit_custom_fields" type="text"
+                   class="text_pole wide100p"
+                   placeholder="e.g. jewelry, accessories">
+        </div>
+
+        <div class="st-ext-settings-block">
+            <label for="outfit_prompt_template">Prompt template:</label>
+            <textarea id="outfit_prompt_template" class="text_pole wide100p" rows="12"></textarea>
+        </div>
+
+        <div class="flex-container" style="gap: 10px; margin-top: 10px;">
+            <div class="menu_button" id="outfit_save_settings">💾 Save</div>
+            <div class="menu_button" id="outfit_reset_settings">♻️ Reset</div>
+        </div>
+    </div>
+</div>

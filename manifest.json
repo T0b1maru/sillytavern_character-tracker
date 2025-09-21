@@ -1,0 +1,12 @@
+{
+    "display_name": "Outfit & Location Tracker",
+    "loading_order": 5,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "t0b1maru",
+    "version": "1.0.0",
+    "homePage": "https://github.com/your-repo",
+    "auto_update": false
+}

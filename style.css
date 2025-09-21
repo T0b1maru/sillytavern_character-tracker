@@ -1,0 +1,21 @@
+/* Outfit/Location Tracker styles */
+.tracker-panel {
+    background: rgba(30, 30, 30, 0.9);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+    font-family: monospace;
+}
+
+.tracker-header {
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    cursor: move;
+    margin-bottom: 5px;
+}
+
+.collapse-toggle {
+    cursor: pointer;
+    user-select: none;
+}
