@@ -1,10 +1,12 @@
 /* Outfit/Location Tracker styles */
 .tracker-panel {
-    background: rgba(30, 30, 30, 0.9);
+    background-color: var(--SmartThemeChatTintColor, rgba(30, 30, 30, 0.9));
+    color: var(--SmartThemeTextColor, #fff);
     padding: 10px;
     border-radius: 10px;
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
     font-family: monospace;
+    z-index: 10 !important; /* stays behind modals */
 }
 
 .tracker-header {
@@ -13,9 +15,12 @@
     justify-content: space-between;
     cursor: move;
     margin-bottom: 5px;
+    border-bottom: 1px solid var(--SmartThemeBlurTintColor, #444);
+    padding-bottom: 3px;
 }
 
 .collapse-toggle {
     cursor: pointer;
     user-select: none;
+    color: var(--SmartThemeAccentColor, #4caf50);
 }

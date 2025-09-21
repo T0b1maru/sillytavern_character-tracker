@@ -8,5 +8,6 @@
     "author": "t0b1maru",
     "version": "1.0.0",
     "homePage": "https://github.com/your-repo",
-    "auto_update": false
+    "auto_update": false,
+    "generate_interceptor": "injectOutfitIntoChat"
 }

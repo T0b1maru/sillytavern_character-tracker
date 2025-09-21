@@ -1,5 +1,5 @@
 // panels.js
-import { getSettings, saveSettings, ensureOutfitKeys } from './state.js';
+import { getSettings, saveSettings, ensureOutfitKeys, ensureCharBlock } from './state.js';
 import { resolveNames } from './names.js';
 import { fieldIcons, genericIcon, pretty } from './utils.js';
 import { fetchOutfitFromChat } from './updater.js';
@@ -94,7 +94,6 @@ function makeInteractive(panelSelector, ownerKey, settings) {
         ensureOutfitKeys(s);
         renderPanels(true);
     });
-
 
     // Update from Chat -> show suggestions under fields (green)
     panel.find('.update-btn').on('click', async () => {
@@ -227,4 +226,68 @@ export function renderPanels(fromEvent = false) {
 
     syncTitlesOnce();
     setupCharPopupSync();
+}
+
+/* -------------------------------------------------------
+   Prompt Interceptor: inject under Persona & Char Desc
+   ------------------------------------------------------- */
+function formatOutfitBlock(title, name, outfitObj, location, keys) {
+    const lines = keys.map(k => `- ${pretty(k)}: ${outfitObj?.[k] ?? 'unknown'}`);
+    return `[${title}]\n${name} outfit:\n${lines.join('\n')}\n${name} location: ${location || 'unknown'}`;
+}
+
+export function injectOutfitIntoChat(chat, _contextSize, _abort, _type) {
+    try {
+        if (!Array.isArray(chat) || chat.length === 0) return;
+
+        const ctx = SillyTavern.getContext();
+        const s = getSettings();
+        ensureOutfitKeys(s);
+
+        const { userName, charName, charId } = resolveNames();
+        if (charId != null) ensureCharBlock(s, charId);
+
+        // Build ordered key list (base + custom)
+        const baseKeys = ['headwear','topwear','top_underwear','bottomwear','bottom_underwear','footwear'];
+        const keys = [...baseKeys, ...(Array.isArray(s.customFields) ? s.customFields : [])];
+
+        const userBlock = formatOutfitBlock('Persona Outfit', userName, s.user, s.userLocation, keys);
+
+        const charData = s.characters?.[charId] ?? { outfit: {}, location: '' };
+        const charBlock = formatOutfitBlock('Character Outfit', charName, charData.outfit, charData.location, keys);
+
+        // Skip if we've already injected on this build
+        const already = chat.some(m => m?.is_system && typeof m.mes === 'string' &&
+            (m.mes.includes('[Persona Outfit]') || m.mes.includes('[Character Outfit]')));
+        if (already) return;
+
+        // Find where system context ends (before first non-system message)
+        let insertAt = chat.findIndex(m => !m?.is_system);
+        if (insertAt < 0) insertAt = chat.length; // all system? then append
+
+        // Insert two system messages so they appear right after Persona/Char sections
+        const now = Date.now();
+        const personaMsg = { is_system: true, name: 'OutfitTracker', send_date: now, mes: userBlock };
+        const charMsg    = { is_system: true, name: 'OutfitTracker', send_date: now, mes: charBlock };
+
+        // Heuristic: if there are multiple system blocks, try to put persona after the last system
+        // that mentions the user name; same for character. If not found, fall back to insertAt.
+        const lastPersonaIdx = [...chat].map((m, i) => ({ m, i }))
+            .filter(x => x.m?.is_system && typeof x.m.mes === 'string' && x.m.mes.toLowerCase().includes(userName.toLowerCase()))
+            .map(x => x.i).pop();
+        const lastCharIdx = [...chat].map((m, i) => ({ m, i }))
+            .filter(x => x.m?.is_system && typeof x.m.mes === 'string' && x.m.mes.toLowerCase().includes(charName.toLowerCase()))
+            .map(x => x.i).pop();
+
+        const personaInsert = Number.isInteger(lastPersonaIdx) ? lastPersonaIdx + 1 : insertAt;
+        chat.splice(personaInsert, 0, personaMsg);
+
+        // After inserting persona, indices shift. Compute char insertion again.
+        const charInsertCandidate = Number.isInteger(lastCharIdx) ? (lastCharIdx >= personaInsert ? lastCharIdx + 2 : lastCharIdx + 1) : insertAt + 1;
+        const safeCharInsert = Math.min(Math.max(charInsertCandidate, 0), chat.length);
+        chat.splice(safeCharInsert, 0, charMsg);
+
+    } catch (err) {
+        console.error('[OutfitTracker] Failed to inject under Persona/Char Desc:', err);
+    }
 }
