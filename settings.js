@@ -3,7 +3,7 @@ import { MODULE_NAME, getSettings, saveSettings, ensureOutfitKeys } from './stat
 import { defaultPromptTemplate } from './promptTemplate.js';
 import { renderPanels } from './panels.js';
 
-const TEMPLATE_PATH = 'third-party/outfit-location-tracker';
+const TEMPLATE_PATH = 'third-party/sillytavern_character-tracker';
 
 export async function renderSettings() {
     try {

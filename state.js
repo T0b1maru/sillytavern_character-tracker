@@ -1,6 +1,6 @@
 import { defaultPromptTemplate } from './promptTemplate.js';
 
-export const MODULE_NAME = 'outfit-location-tracker';
+export const MODULE_NAME = 'sillytavern_character-tracker';
 
 // ---- Base outfit schema (fixed order) ----
 const defaultOutfit = {
